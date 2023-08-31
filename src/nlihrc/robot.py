@@ -208,7 +208,9 @@ class CommandGenerator:
             Command.GIVE_ROCKER_ARM: lambda: self.cliport_cmd(CLIPORT_CMDS[14]),
             Command.PUT_BOLT_IN_RED_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[15]),
             Command.PUT_PUSH_ROD_IN_RED_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[16]),
-            Command.PUT_ROCKER_ARM_IN_RED_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[17])
+            Command.PUT_ROCKER_ARM_IN_RED_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[17]),
+            Command.PUT_LONG_SCREW_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[18]),
+            Command.PUT_LONG_SCREW_IN_RED_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[19])
         }
 
     def run(self, cmd, numeric=None):

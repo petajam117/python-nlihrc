@@ -24,27 +24,31 @@ def main_speech(config):
     port = config['network']['port']
     ip = config['network']['ip']
     modelpath = config['speech']['modelpath']
-    # UDP Receiver (Handles Android App comm.)
-    # udp = UDPReceiver(chunk, ip, port)
-    mcom = MicReceiver(chunk)
-    # Speech Recognizer (Handles speech to text)
+    uselocal = config['speech']['uselocal']
+
+    if uselocal:
+        # raw speech data receiver
+        com_surface = MicReceiver(chunk)
+    else:
+        # UDP Receiver (Handles Android App comm.)
+        com_surface = UDPReceiver(chunk, ip, port)
+
     rec = SpeechRecognizer(modelpath, rate, chunk)
 
     # Start udp thread
-    # udp.start()
-    mcom.start()
+    com_surface.start()
 
     # Main program loop
-    # rospy.loginfo(f"Speech server online. Listening at {udp.host_ip = }, {port = }")
-    rospy.loginfo("Mic online")
+    if uselocal:
+        rospy.loginfo("Mic online")
+    else:
+        rospy.loginfo(f"Speech server online. Listening at {com_surface.host_ip = }, {port = }")
     try:
         while not rospy.is_shutdown():
             # Get audio data
-            # if udp.q.empty():
-            if mcom.q.empty():
+            if com_surface.q.empty():
                 continue
-            # data = udp.q.get()
-            data = mcom.q.get()
+            data = com_surface.q.get()
             # Speech to text conversion
             words, number, deleted = rec.speech_to_text(data)
             if len(words) > 0 or len(deleted) > 0:
@@ -58,13 +62,14 @@ def main_speech(config):
     except KeyboardInterrupt:
         rospy.loginfo("Shutting down speech server")
     finally:
-        rospy.loginfo("Closing mic")
-        mcom.stop()
-        # udp.close_thread = True
-        # udp.join()
-        # while not udp.q.empty():
-        #    udp.q.get()
-        mcom.stop()
+        if uselocal:
+            rospy.loginfo("Closing mic")
+            com_surface.stop()
+        else:
+            com_surface.close_thread = True
+            com_surface.join()
+            while not com_surface.q.empty():
+                com_surface.q.get()
 
 
 class TextSub:
@@ -147,34 +152,41 @@ def main_app(config):
     port = config['network']['port']
     ip = config['network']['ip']
     modelpath = config['speech']['modelpath']
+    uselocal = config['speech']['uselocal']
     rospy.loginfo(f"config loaded")
-    # UDP Receiver (Handles Android App comm.)
-    # udp = UDPReceiver(chunk, ip, port)
-    mcom = MicReceiver(chunk)
-    rospy.loginfo(f"Mic initialized")
+    if uselocal:
+        # raw speech data receiver
+        com_surface = MicReceiver(chunk)
+    else:
+        # UDP Receiver (Handles Android App comm.)
+        com_surface = UDPReceiver(chunk, ip, port)
+
     # Speech Recognizer (Handles speech to text)
     rec = SpeechRecognizer(modelpath, rate, chunk)
     rospy.loginfo(f"Recognizer initialized")
+
     # Text classififiers (Handles text to command)
     textclassifier = TextClassifier()
     rospy.loginfo(f"Classifier initialized")
+
     # Command generator (Handles robot manipulation based on commands)
     cmdgen = CommandGenerator(config)
     rospy.loginfo(f"Command generator initialized")
-    # Start udp thread
-    # udp.start()
-    mcom.start()
+
+    # Start udp/local thread
+    com_surface.start()
+
     # Main program loop
-    # rospy.loginfo(f"Speech server online. Listening at {udp.host_ip = }, {port = }")
-    rospy.loginfo(f"Mic online")
+    if uselocal:
+        rospy.loginfo("Mic online")
+    else:
+        rospy.loginfo(f"Speech server online. Listening at {com_surface.host_ip = }, {port = }")
     try:
         while not rospy.is_shutdown():
             # Get audio data
-            # if udp.q.empty():
-            if mcom.q.empty():
+            if com_surface.q.empty():
                 continue
-            # data = udp.q.get()
-            data = mcom.q.get()
+            data = com_surface.q.get()
             # Speech to text conversion
             words, number, deleted = rec.speech_to_text(data)
             if len(words) > 0 or len(deleted) > 0:
@@ -196,10 +208,11 @@ def main_app(config):
     except KeyboardInterrupt:
         rospy.loginfo("Shutting down app server")
     finally:
-        # rospy.loginfo("Closing UDP thread")
-        rospy.loginfo("Closing mic thread")
-        # udp.close_thread = True
-        # udp.join()
-        # while not udp.q.empty():
-        #    udp.q.get()
-        mcom.stop()
+        if uselocal:
+            rospy.loginfo("Closing mic")
+            com_surface.stop()
+        else:
+            com_surface.close_thread = True
+            com_surface.join()
+            while not com_surface.q.empty():
+                com_surface.q.get()
